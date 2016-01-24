@@ -8,21 +8,20 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 
-import org.apache.commons.io.FileUtils;
+import com.activeandroid.query.Delete;
+import com.activeandroid.query.Select;
+import com.codepath.kpu.simplist.models.Task;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    ArrayList<String> items;
-    ArrayAdapter<String> itemsAdapter;
-    ListView lvItems;
+    TasksAdapter tasksAdapter;
+    ListView lvTasks;
 
     private final int REQUEST_CODE = 42;
 
@@ -33,10 +32,9 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        lvItems = (ListView)findViewById(R.id.lvItems);
-        readItems();
-        itemsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, items);
-        lvItems.setAdapter(itemsAdapter);
+        lvTasks = (ListView)findViewById(R.id.lvItems);
+        tasksAdapter = new TasksAdapter(this, getTasks());
+        lvTasks.setAdapter(tasksAdapter);
         setupListViewListener();
     }
 
@@ -62,73 +60,65 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        tasksAdapter.updateTasks(getTasks());
+    }
+
     private void setupListViewListener() {
 
-        lvItems.setOnItemClickListener(
+        lvTasks.setOnItemClickListener(
                 new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                        launchEditView(position);
+                        Task task = tasksAdapter.getItem(position);
+                        launchEditView(task);
                     }
-        });
+                });
 
-        lvItems.setOnItemLongClickListener(
+        lvTasks.setOnItemLongClickListener(
                 new AdapterView.OnItemLongClickListener() {
                     @Override
                     public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                        items.remove(position);
-                        itemsAdapter.notifyDataSetChanged();
-                        writeItems();
+                        // Remove task from view
+                        Task task = tasksAdapter.getItem(position);
+                        tasksAdapter.remove(task);
+                        tasksAdapter.notifyDataSetChanged();
+
+                        // Remove task from db
+                        new Delete().from(Task.class).where("Id = ?", task.getId()).execute();
                         return true;
                     }
                 });
     }
 
-    private void launchEditView(int position) {
+    private void launchEditView(Task task) {
         Intent i = new Intent(MainActivity.this, EditItemActivity.class);
-        i.putExtra("position", position);
-        i.putExtra("task_name", items.get(position));
-        startActivityForResult(i, REQUEST_CODE);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // REQUEST_CODE is defined above
-        if (resultCode == RESULT_OK && requestCode == REQUEST_CODE) {
-            // Extract name value from result extras
-            int position = data.getExtras().getInt("position");
-            String taskName = data.getExtras().getString("task_name");
-            items.set(position, taskName);
-            itemsAdapter.notifyDataSetChanged();
-            writeItems();
-        }
+        i.putExtra("task_id", task.getId());
+        startActivity(i);
     }
 
     public void onAddItem(View v) {
         EditText etNewItem = (EditText)findViewById(R.id.etNewItem);
-        String itemText = etNewItem.getText().toString();
-        itemsAdapter.add(itemText);
+        String itemText = etNewItem.getText().toString().trim();
+
+        // Create new task, save to db
+        Task task = new Task(itemText);
+        task.save();
+
+        // Update view
+        tasksAdapter.add(task);
         etNewItem.setText("");
-        writeItems();
     }
 
-    private void readItems() {
-        File filesDir = getFilesDir();
-        File todoFile = new File(filesDir, "todo.txt");
-        try {
-            items = new ArrayList<String>(FileUtils.readLines(todoFile));
-        } catch (IOException e) {
-            items = new ArrayList<String>();
-        }
-    }
+    private ArrayList<Task> getTasks() {
+        // Query ActiveAndroid for list of data
+        List<Task> queryResults = new Select()
+                .from(Task.class)
+                .orderBy("Id ASC")
+                .execute();
 
-    private void writeItems() {
-        File filesDir = getFilesDir();
-        File todoFile = new File(filesDir, "todo.txt");
-        try {
-            FileUtils.writeLines(todoFile, items);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        return (ArrayList<Task>)queryResults;
     }
 }

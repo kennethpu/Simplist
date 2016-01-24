@@ -1,33 +1,36 @@
 package com.codepath.kpu.simplist;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.EditText;
 
+import com.activeandroid.query.Select;
+import com.codepath.kpu.simplist.models.Task;
+
 public class EditItemActivity extends AppCompatActivity {
 
-    int position;
+    private Task task;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_item);
 
-        position = getIntent().getIntExtra("position", 0);
-        String taskName = getIntent().getStringExtra("task_name");
+        // Retrieve task from db
+        long taskId = getIntent().getLongExtra("task_id", 0);
+        task = new Select().from(Task.class).where("Id = ?", taskId).executeSingle();
+
+        // Set text in view
         EditText etNewItem = (EditText)findViewById(R.id.etEditItem);
-        etNewItem.setText(taskName);
+        etNewItem.setText(task.name);
     }
 
     public void onSave(View v) {
-        EditText etName = (EditText) findViewById(R.id.etEditItem);
+        EditText etName = (EditText)findViewById(R.id.etEditItem);
 
-        Intent data = new Intent();
-        data.putExtra("position", position);
-        data.putExtra("task_name", etName.getText().toString());
-        setResult(RESULT_OK, data);
+        task.name = etName.getText().toString().trim();
+        task.save();
 
         this.finish();
     }
