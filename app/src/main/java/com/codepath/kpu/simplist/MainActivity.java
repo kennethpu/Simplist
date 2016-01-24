@@ -16,6 +16,8 @@ import com.activeandroid.query.Select;
 import com.codepath.kpu.simplist.models.Task;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -103,8 +105,16 @@ public class MainActivity extends AppCompatActivity {
         EditText etNewItem = (EditText)findViewById(R.id.etNewItem);
         String itemText = etNewItem.getText().toString().trim();
 
-        // Create new task, save to db
-        Task task = new Task(itemText);
+        // Get today's date
+        Date today = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(today);
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+
+        // Create new task (set due date initially to tomorrow), save to db
+        Task task = new Task(itemText, year, month, day + 1, false);
         task.save();
 
         // Update view

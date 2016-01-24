@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
 import android.widget.TextView;
 
 import com.codepath.kpu.simplist.models.Task;
@@ -27,14 +28,23 @@ public class TasksAdapter extends ArrayAdapter<Task> {
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_task, parent, false);
         }
-        // Lookup view for data population
-        TextView tvName = (TextView) convertView.findViewById(R.id.tvName);
+        // Lookup views for data population
+        TextView tvName = (TextView)convertView.findViewById(R.id.tvName);
+        TextView tvData = (TextView)convertView.findViewById(R.id.tvDate);
+        CheckBox cbComplete = (CheckBox)convertView.findViewById(R.id.cbComplete);
 
         // Populate the data into the template view using the data object
         tvName.setText(task.name);
+        tvData.setText(getDateString(task.year, task.month, task.day));
+        cbComplete.setChecked(task.complete);
 
         // Return the completed view to render on screen
         return convertView;
+    }
+
+    private String getDateString(int year, int month, int day) {
+        // Account for jan -> 0
+        return String.format("%d/%d/%d", month + 1, day, year);
     }
 
     public void updateTasks(ArrayList<Task> tasks) {
